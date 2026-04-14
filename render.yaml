@@ -1,0 +1,73 @@
+services:
+  - type: web
+    name: youtube-news-api
+    runtime: python
+    plan: starter
+    autoDeploy: true
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: youtube-news-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: youtube-news-redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: youtube-news-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: youtube-news-redis
+          property: connectionString
+      - key: STORAGE_DIR
+        value: /tmp/youtube-news
+      - key: LOG_LEVEL
+        value: INFO
+
+  - type: worker
+    name: youtube-news-worker
+    runtime: python
+    plan: starter
+    autoDeploy: true
+    buildCommand: pip install -r requirements.txt
+    startCommand: celery -A backend.worker.celery_app:celery_app worker --loglevel=INFO --concurrency=2
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: youtube-news-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: youtube-news-redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: youtube-news-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: youtube-news-redis
+          property: connectionString
+      - key: STORAGE_DIR
+        value: /tmp/youtube-news
+      - key: LOG_LEVEL
+        value: INFO
+
+databases:
+  - name: youtube-news-db
+    plan: starter
+
+  - name: youtube-news-redis
+    plan: starter
+    type: redis
+
